@@ -7,19 +7,43 @@
 
 import React, {useState, useRef, useEffect, type ReactNode} from 'react';
 import clsx from 'clsx';
+import {isRegexpStringMatch} from '@docusaurus/theme-common';
+import {isSamePath, useLocalPathname} from '@docusaurus/theme-common/internal';
 import NavbarNavLink from '@theme/NavbarItem/NavbarNavLink';
-import NavbarItem from '@theme/NavbarItem';
+import NavbarItem, {type LinkLikeNavbarItemProps} from '@theme/NavbarItem';
 import type {Props} from '@theme/NavbarItem/DropdownNavbarItem/Desktop';
+
+function isItemActive(
+  item: LinkLikeNavbarItemProps,
+  localPathname: string,
+): boolean {
+  if (isSamePath(item.to, localPathname)) {
+    return true;
+  }
+  if (isRegexpStringMatch(item.activeBaseRegex, localPathname)) {
+    return true;
+  }
+  if (item.activeBasePath && localPathname.startsWith(item.activeBasePath)) {
+    return true;
+  }
+  return false;
+}
 
 export default function DropdownNavbarItemDesktop({
   items,
   position,
   className,
   onClick,
+  activeClassName,
   ...props
 }: Props): ReactNode {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const localPathname = useLocalPathname();
+  const isActive = isItemActive(props, localPathname);
+  const containsActive = items.some((item) =>
+    isItemActive(item, localPathname),
+  );
 
   useEffect(() => {
     const handleClickOutside = (
@@ -62,6 +86,8 @@ export default function DropdownNavbarItemDesktop({
         href={props.to ? undefined : '#'}
         className={clsx('navbar__link', className)}
         {...props}
+        activeClassName={activeClassName ?? 'navbar__link--active'}
+        isActive={() => isActive || containsActive}
         onClick={props.to ? undefined : (e) => e.preventDefault()}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
